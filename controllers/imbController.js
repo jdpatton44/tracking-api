@@ -4,6 +4,7 @@ const path = require('path');
 const Imb = require('../models/imb.model');
 const db = require('../models/index');
 
+
 exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
   try {
@@ -36,43 +37,39 @@ exports.uploadFile = async (req, res, next) => {
 exports.exportFileToDB = async (req, res) => {
   console.log('file: ', req.file);
   const filePath = path.join(__dirname, '../', req.file.path);
-  console.log(filePath);
-
+  console.log(req.body.jobId);
   console.log('attempting upload to db.');
+  let csvData = [];
+  
   try {
     if (req.file == undefined) {
       return res.status(400).send('No file found.');
     }
+    const byteSize = 10;
 
-    const stream = fs.createReadStream(filePath);
-    const parser = csv.parse({
-      delimiter: ',',
-      columns: true,
-    });
-
-    stream.on('data', function(data) {
-      const row = data.toString();
-      console.log(row);
-      console.log('----');
-    });
-    // const transform = await csv.transform(row => {
-    //   const resultObj = {
-    //     jobId: req.body.jobId,
-    //     IMB: row[0],
-    //     zipPlusFour: row[1],
-    //     state: row[2],
-    //     package: row[3],
-    //   };
-    //   console.log(resultObj);
-    //   Imb.create(resultObj)
-    //     .then(() => {
-    //       console.log('record created.');
-    //     })
-    //     .catch(error => {
-    //       console.log('Error: ', error);
-    //     });
-    //   input.pipe(parser).pipe(transform);
-    // });
+    const stream = fs.createReadStream(filePath, { highWaterMark: 1 * 1024,})
+    .pipe(csv.parse({delimiter: ',', from_line: 2}))
+    
+    stream.on('readable', () => {
+      let chunk;
+      while(chunk = stream.read(byteSize)) {
+        console.log(chunk);
+        //do something with csvrow
+        const newImb = {
+          jobId: req.body.jobId,
+          IMB: chunk[0],
+          zipPlusFour: chunk[1],
+          state: chunk[2],
+          package: chunk[3],
+        }
+        const row = db.Imb.create(newImb).then(data => {
+          console.log('success.')
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      }
+    })
   } catch (error) {
     console.log(error);
     res.status(500).send({

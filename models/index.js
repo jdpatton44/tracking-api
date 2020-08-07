@@ -18,6 +18,6 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-db.tutorials = require('./imb.model.js')(sequelize, Sequelize);
+db.Imb = require('./imb.model.js')(sequelize, Sequelize);
 
 module.exports = db;
