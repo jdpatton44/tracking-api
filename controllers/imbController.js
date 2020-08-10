@@ -4,7 +4,6 @@ const path = require('path');
 const Imb = require('../models/imb.model');
 const db = require('../models/index');
 
-
 exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
   try {
@@ -39,37 +38,51 @@ exports.exportFileToDB = async (req, res) => {
   const filePath = path.join(__dirname, '../', req.file.path);
   console.log(req.body.jobId);
   console.log('attempting upload to db.');
-  let csvData = [];
-  
+  const csvData = [];
+
   try {
     if (req.file == undefined) {
       return res.status(400).send('No file found.');
     }
     const byteSize = 10;
+    let data = [];
+    const stream = fs
+      .createReadStream(filePath, { highWaterMark: 1 * 1024 })
+      .pipe(csv.parse({ delimiter: ',', from_line: 2 }));
 
-    const stream = fs.createReadStream(filePath, { highWaterMark: 1 * 1024,})
-    .pipe(csv.parse({delimiter: ',', from_line: 2}))
-    
     stream.on('readable', () => {
       let chunk;
-      while(chunk = stream.read(byteSize)) {
-        console.log(chunk);
-        //do something with csvrow
+      while ((chunk = stream.read(byteSize))) {
+        // create a new imb record for the table from the row
         const newImb = {
-          jobId: req.body.jobId,
+          jobid: req.body.jobId,
           IMB: chunk[0],
           zipPlusFour: chunk[1],
           state: chunk[2],
           package: chunk[3],
+        };
+        data.push(newImb);
+        if (data.length > 1500) {
+          db.Imb.bulkCreate(data)
+            .then(() => {
+              console.log('success.');
+              data = [];
+            })
+            .catch(error => {
+              console.log(error);
+            });
         }
-        const row = db.Imb.create(newImb).then(data => {
-          console.log('success.')
+      }
+    });
+    stream.on('end', () => {
+      db.Imb.bulkCreate(data)
+        .then(() => {
+          console.log('success.');
         })
         .catch(error => {
           console.log(error);
         });
-      }
-    })
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send({
