@@ -3,6 +3,8 @@ const csv = require('csv');
 const path = require('path');
 const Imb = require('../models/imb.model');
 const db = require('../models/index');
+const readline = require('readline');
+const { once } = require('events');
 
 exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
@@ -44,49 +46,52 @@ exports.exportFileToDB = async (req, res) => {
     if (req.file == undefined) {
       return res.status(400).send('No file found.');
     }
-    const byteSize = 10;
-    let data = [];
-    const stream = fs
-      .createReadStream(filePath, { highWaterMark: 1 * 1024 })
-      .pipe(csv.parse({ delimiter: ',', from_line: 2 }));
-
-    stream.on('readable', () => {
-      let chunk;
-      while ((chunk = stream.read(byteSize))) {
-        // create a new imb record for the table from the row
-        const newImb = {
-          jobid: req.body.jobId,
-          IMB: chunk[0],
-          zipPlusFour: chunk[1],
-          state: chunk[2],
-          package: chunk[3],
-        };
-        data.push(newImb);
-        if (data.length > 1500) {
-          db.Imb.bulkCreate(data)
+    (async function processLineByLine() {
+      try {
+        const rl = readline.createInterface({
+          input: fs.createReadStream(filePath),
+          crlfDelay: Infinity
+        });
+    
+        rl.on('line', (line) => {
+          console.log(`Line from file: ${line}`);
+          const row = line.split(',');
+          const newImb = {
+            jobid: req.body.jobId,
+            IMB: row[0].substring(1,row[0].length-1),
+            zipPlusFour: row[1].substring(1,row[1].length-1),
+            state: row[2].substring(1,row[2].length-1),
+            package: row[3].substring(1,row[3].length-1),
+          };
+          csvData.push(newImb);
+          if (csvData.length > 2000) {
+            db.Imb.bulkCreate(csvData)
             .then(() => {
-              console.log('success.');
-              data = [];
+              console.log('successfully inserted data.');
+              csvData.length = 0;
             })
             .catch(error => {
               console.log(error);
             });
-        }
-      }
-    });
-    stream.on('end', () => {
-      db.Imb.bulkCreate(data)
-        .then(() => {
-          console.log('success.');
-        })
-        .catch(error => {
-          console.log(error);
+            csvData.length = 0;
+          }
         });
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({
-      message: `Could not upload the file: ${req.file.originalname}`,
-    });
+    
+        await once(rl, 'close');
+        db.Imb.bulkCreate(csvData)
+            .then(() => {
+              console.log('successfully inserted data.');
+              csvData.length = 0;
+            })
+            .catch(error => {
+              console.log(error);
+            });
+        console.log('File processed.');
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  } catch (err) {
+  console.error(err);
   }
-};
+}
