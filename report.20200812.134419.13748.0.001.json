@@ -1,0 +1,159 @@
+
+{
+  "header": {
+    "reportVersion": 1,
+    "event": "Allocation failed - JavaScript heap out of memory",
+    "trigger": "FatalError",
+    "filename": "report.20200812.134419.13748.0.001.json",
+    "dumpEventTime": "2020-08-12T13:44:19Z",
+    "dumpEventTimeStamp": "1597254259462",
+    "processId": 13748,
+    "cwd": "C:\\Users\\PKGBCC\\Projects\\atta-upload",
+    "commandLine": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "./index.js"
+    ],
+    "nodejsVersion": "v12.14.0",
+    "wordSize": 64,
+    "arch": "x64",
+    "platform": "win32",
+    "componentVersions": {
+      "node": "12.14.0",
+      "v8": "7.7.299.13-node.16",
+      "uv": "1.33.1",
+      "zlib": "1.2.11",
+      "brotli": "1.0.7",
+      "ares": "1.15.0",
+      "modules": "72",
+      "nghttp2": "1.39.2",
+      "napi": "5",
+      "llhttp": "1.1.4",
+      "http_parser": "2.8.0",
+      "openssl": "1.1.1d",
+      "cldr": "35.1",
+      "icu": "64.2",
+      "tz": "2019c",
+      "unicode": "12.1"
+    },
+    "release": {
+      "name": "node",
+      "lts": "Erbium",
+      "headersUrl": "https://nodejs.org/download/release/v12.14.0/node-v12.14.0-headers.tar.gz",
+      "sourceUrl": "https://nodejs.org/download/release/v12.14.0/node-v12.14.0.tar.gz",
+      "libUrl": "https://nodejs.org/download/release/v12.14.0/win-x64/node.lib"
+    },
+    "osName": "Windows_NT",
+    "osRelease": "10.0.18362",
+    "osVersion": "Windows 10 Pro",
+    "osMachine": "x86_64",
+    "cpus": [
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 55562,
+        "nice": 0,
+        "sys": 34453,
+        "idle": 798968,
+        "irq": 4140
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 38437,
+        "nice": 0,
+        "sys": 16265,
+        "idle": 834109,
+        "irq": 93
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 118531,
+        "nice": 0,
+        "sys": 29890,
+        "idle": 740390,
+        "irq": 265
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 51515,
+        "nice": 0,
+        "sys": 15265,
+        "idle": 822031,
+        "irq": 296
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 68937,
+        "nice": 0,
+        "sys": 28062,
+        "idle": 791812,
+        "irq": 484
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 44718,
+        "nice": 0,
+        "sys": 16281,
+        "idle": 827812,
+        "irq": 203
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 65031,
+        "nice": 0,
+        "sys": 24671,
+        "idle": 799109,
+        "irq": 421
+      },
+      {
+        "model": "Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz",
+        "speed": 3500,
+        "user": 49921,
+        "nice": 0,
+        "sys": 22671,
+        "idle": 816218,
+        "irq": 187
+      }
+    ],
+    "networkInterfaces": [
+      {
+        "name": "Ethernet",
+        "internal": false,
+        "mac": "30:85:a9:3a:97:8c",
+        "address": "fe80::a1f1:6b45:33f9:cf7d",
+        "netmask": "ffff:ffff:ffff:ffff::",
+        "family": "IPv6",
+        "scopeid": 9
+      },
+      {
+        "name": "Ethernet",
+        "internal": false,
+        "mac": "30:85:a9:3a:97:8c",
+        "address": "192.168.0.228",
+        "netmask": "255.255.255.0",
+        "family": "IPv4"
+      },
+      {
+        "name": "Loopback Pseudo-Interface 1",
+        "internal": true,
+        "mac": "00:00:00:00:00:00",
+        "address": "::1",
+        "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+        "family": "IPv6",
+        "scopeid": 0
+      },
+      {
+        "name": "Loopback Pseudo-Interface 1",
+        "internal": true,
+        "mac": "00:00:00:00:00:00",
+        "address": "127.0.0.1",
+        "netmask": "255.0.0.0",
+        "family": "IPv4"
+      }
+    ],
+    "host": "49er

@@ -5,6 +5,6 @@ const imbController = require('../controllers/imbController');
 
 const router = express.Router();
 
-router.post('/upload-file', upload.single('file'), imbController.uploadFile, imbController.exportFileToDB);
+router.post('/upload-file', upload.single('file'), imbController.uploadFile, imbController.exportTrackingFileToDB);
 
 module.exports = router;
