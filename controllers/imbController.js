@@ -6,6 +6,8 @@ const db = require('../models/index');
 const readline = require('readline');
 const { once } = require('events');
 
+
+
 exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
   try {
@@ -35,7 +37,7 @@ exports.uploadFile = async (req, res, next) => {
   }
 };
 
-exports.exportTrackingFileToDB = async (req, res) => {
+exports.exportTrackingFileToDB = async (req, res, next) => {
   // get the file's location
   const filePath = path.join(__dirname, '../', req.file.path);
   console.log('attempting upload to db.');
@@ -97,4 +99,18 @@ exports.exportTrackingFileToDB = async (req, res) => {
   } catch (error) {
   console.error(error);
   }
-}
+  next();
+};
+
+exports.deleteUpload = async (req, res) => {
+  fs.unlink(req.file, function (err) {
+    if (err) throw err;
+    // if no error, file has been deleted successfully
+    console.log('File deleted!');
+});  
+  res.send("File is deleted.");
+};
+
+exports.getFileFromFTP = async (req, res, next) => {
+  res.send('i');
+};
