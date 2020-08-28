@@ -27,12 +27,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
       },
       expectedDel: {
-        type: DataTypes.DATE,
+        type: DataTypes.STRING,
       },
       anticipatedDel: {
-        type: DataTypes.DATE,
+        type: DataTypes.STRING,
       },
-    });
+    },{
+      timestamps: false
+  });
   
     return scan;
   };

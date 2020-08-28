@@ -1,4 +1,5 @@
 const express = require('express');
+const asyncHandler = require('express-async-handler')
 const upload = require('../middlewares/upload');
 const imbController = require('../controllers/imbController');
 const scanController = require('../controllers/scanController');
@@ -11,6 +12,12 @@ const router = express.Router();
 
 router.post('/upload-file', upload.single('file'), imbController.uploadFile, imbController.exportTrackingFileToDB);
 
-router.get('/checkFtp', scanController.getFilesFromFTP, scanController.uploadScanData);
+router.get('/checkFtp', asyncHandler(async(req, res) => {
+    await scanController.getFilesFromFTP() 
+}));
+
+router.get('/uploadScans', asyncHandler(async(req, res) => {
+    await scanController.uploadScanData()
+}));
 
 module.exports = router;
