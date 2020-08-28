@@ -1,11 +1,9 @@
 const fs = require('fs');
-const csv = require('csv');
 const path = require('path');
-const Imb = require('../models/imb.model');
 const db = require('../models/index');
 const readline = require('readline');
 const { once } = require('events');
-
+const { processScans } = require('../utils/fileProcessors');
 
 
 exports.uploadFile = async (req, res, next) => {
@@ -34,7 +32,7 @@ exports.uploadFile = async (req, res, next) => {
     }
   } catch (err) {
     res.status(500).send(err);
-  }
+  }  
 };
 
 exports.exportTrackingFileToDB = async (req, res, next) => {
@@ -77,7 +75,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
             .catch(error => {
               console.log(error);
             });
-            csvData.length = 0;
+            csvData.length = [];
           }
         });
         // close the file
@@ -109,8 +107,4 @@ exports.deleteUpload = async (req, res) => {
     console.log('File deleted!');
 });  
   res.send("File is deleted.");
-};
-
-exports.getFileFromFTP = async (req, res, next) => {
-  res.send('i');
 };
