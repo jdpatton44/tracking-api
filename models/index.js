@@ -19,5 +19,6 @@ db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
 db.Imb = require('./imb.model.js')(sequelize, Sequelize);
+db.scan = require('./scan.model.js')(sequelize, Sequelize);
 
 module.exports = db;
