@@ -4,9 +4,12 @@ const db = require('../models/index');
 const readline = require('readline');
 const { once } = require('events');
 const ftp = require('basic-ftp');
-const { processScans } = require('../utils/fileProcessors');
+// const { processScans } = require('../utils/fileProcessors');
 var csv = require('fast-csv');
 const { includes } = require('lodash');
+const log4js = require('log4js');
+
+const MAXINPUT = 5000;
 
 exports.getFilesFromFTP = async (req, res, next) => {
     const connectionOptions = {
@@ -15,7 +18,8 @@ exports.getFilesFromFTP = async (req, res, next) => {
       password: process.env.FTP_PASS,
       // secure: false, 
     }
-
+    
+    let fileList = [];
     async function downloadFiles () {
       const client = new ftp.Client();
       client.ftp.verbose = true;
@@ -25,36 +29,41 @@ exports.getFilesFromFTP = async (req, res, next) => {
         await client.login(connectionOptions.user, connectionOptions.password);
         await client.useDefaultSettings();
         const files = await client.list('/IMBData/'); 
-        const fileNames = files.map(f => f.name);
         await client.downloadToDir('uploads/scanData','/IMBData/');
-
-        // res.send(fileNames)
-        
+        files.forEach( async file => { 
+          fileList.push(file.name)
+          await client.rename('/IMBData/' + file.name, '/downloaded/' + file.name) 
+        });
+        await client.close();
       }
       catch(err) {
         console.log(err);
       }
-      client.close();
     }
-   const fileList = downloadFiles();
+    await downloadFiles();
+    return fileList;
  }
 
- exports.uploadScanData = async (req, res, next) => {
-  console.log('starting uploadScans.....')
+exports.uploadScanData = async (req, res, next) => {
+  console.log('starting uploadScans.....');
+  const logger = log4js.getLogger("downloads");
+  // set the download directory
   const scansFolder = path.join(__dirname, '../' + '/uploads/scanData/');
   console.log(scansFolder);
   // check for files in directory.
-  fs.readdir(scansFolder, (err, files) => {
-    if(files ) {
-      files.forEach(file => {
-        console.log(file)
+  let UploadsList = []
+  const files = fs.readdir(scansFolder, async (err, files) => {
+    console.table(files)
+    const uploadedFiles = files.map(async (file, i) => {
         try {
           const rl = readline.createInterface({
             input: fs.createReadStream(scansFolder + file),
             crlfDelay: Infinity
           });  
+          const filename = files[i];
+          let fileRecords = 0;
           let = txtData = []  
-          rl.on('line', (line) => {
+          rl.on('line', async (line) => {
             // read a line of the data and split it into an array to create an object to insert into the db
             const row = line.split(',');
             const newScan = {
@@ -67,28 +76,25 @@ exports.getFilesFromFTP = async (req, res, next) => {
               anticipatedDel: row[7],
             };
             // add the object to the array to be inserted
-            //console.log(newScan)
             txtData.push(newScan);
-            if (txtData.length > 2500) {
+            fileRecords++;
+            if (txtData.length > MAXINPUT) {
               // copy the original array of data for insertion
               const sqlData = [...txtData];
               txtData = [];
-              db.scan.bulkCreate(sqlData)
-              .then(() => {
-                console.log('successfully inserted data.');
-              })
-              .catch(error => {
-                console.log(error);
-              });
-              txtData.length = [];
+              await db.scan.bulkCreate(sqlData);
             }
-            res.send('all files uploaded.')
-          }); 
+          });
+          await once(rl, 'close');
+          // insert the leftover data
+          await db.scan.bulkCreate(txtData);
+          console.log(fileRecords, ' records from ', filename, ' processed.');
+          UploadsList.push(filename);
         } catch (error) {
           console.log(error);
         }
-      })    
-    }
-  })
+      });
+    });
+    return UploadsList;
 };
 

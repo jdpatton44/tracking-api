@@ -3,8 +3,9 @@ const path = require('path');
 const db = require('../models/index');
 const readline = require('readline');
 const { once } = require('events');
-const { processScans } = require('../utils/fileProcessors');
+//const { processScans } = require('../utils/fileProcessors');
 
+const MAXINPUT = 5000;
 
 exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
@@ -51,7 +52,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
           crlfDelay: Infinity
         });
         let csvData = [];
-        rl.on('line', (line) => {
+        rl.on('line', async (line) => {
           // read a line of the data and split it into an array to create an object to insert into the db
           const row = line.split(',');
           const newImb = {
@@ -64,31 +65,21 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
           };
           // add the object to the array to be inserted
           csvData.push(newImb);
-          if (csvData.length > 5000) {
+          if (csvData.length > MAXINPUT) {
             // copy the original array of data for insertion
             const sqlData = [...csvData];
             csvData = [];
-            db.Imb.bulkCreate(sqlData)
-            .then(() => {
-              console.log('successfully inserted data.');
-            })
-            .catch(error => {
-              console.log(error);
-            });
+            await db.Imb.bulkCreate(sqlData)
+            console.log(`successfully  inserted ${MAXINPUT} rows into the database.`);
             csvData.length = [];
           }
         });
         // close the file
         await once(rl, 'close');
         // insert the leftover data
-        db.Imb.bulkCreate(csvData)
-            .then(() => {
-              console.log('successfully inserted the last bit of data.');
-              csvData = [];
-            })
-            .catch(error => {
-              console.log(error);
-            });
+        await db.Imb.bulkCreate(csvData)
+        console.log('successfully inserted the last bit of data.');
+        csvData = [];
         console.log('File processed.');
       } catch (error) {
         console.error(error);
@@ -97,7 +88,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
   } catch (error) {
   console.error(error);
   }
-  next();
+  // next();
 };
 
 exports.deleteUpload = async (req, res) => {

@@ -32,9 +32,11 @@ module.exports = (sequelize, DataTypes) => {
       anticipatedDel: {
         type: DataTypes.STRING,
       },
-    },{
-      timestamps: false
-  });
+    },
+    // {
+    //   timestamps: false
+    // }
+  );
   
     return scan;
   };
