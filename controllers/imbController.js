@@ -3,7 +3,9 @@ const path = require('path');
 const db = require('../models/index');
 const readline = require('readline');
 const { once } = require('events');
+const { includes } = require('lodash');
 //const { processScans } = require('../utils/fileProcessors');
+const log = require('log4js').getLogger("downloads");
 
 const MAXINPUT = 5000;
 
@@ -11,7 +13,6 @@ exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
   try {
     const { file } = req;
-
     // make sure file is available
     if (!file) {
       res.status(400).send({
@@ -29,6 +30,8 @@ exports.uploadFile = async (req, res, next) => {
           size: file.size,
         },
       });
+      // log file name
+      log.debug(`Uploaded ${file.originalname} to server.`);
       next();
     }
   } catch (err) {
@@ -51,10 +54,12 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
           input: fs.createReadStream(filePath),
           crlfDelay: Infinity
         });
+        let numLines = 0;
         let csvData = [];
         rl.on('line', async (line) => {
           // read a line of the data and split it into an array to create an object to insert into the db
           const row = line.split(',');
+          if(row[0].includes('barcode')) return; 
           const newImb = {
             jobid: req.body.jobId,
             // use substring to get rid of quotes around the data
@@ -65,6 +70,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
           };
           // add the object to the array to be inserted
           csvData.push(newImb);
+          numLines ++;
           if (csvData.length > MAXINPUT) {
             // copy the original array of data for insertion
             const sqlData = [...csvData];
@@ -81,6 +87,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
         console.log('successfully inserted the last bit of data.');
         csvData = [];
         console.log('File processed.');
+        log.debug(`Uploaded ${numLines} records from ${req.file.originalname} into database`)
       } catch (error) {
         console.error(error);
       }
