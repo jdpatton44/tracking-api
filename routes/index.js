@@ -9,13 +9,11 @@ const db = require('../models');
 
 const router = express.Router();
 
-// TODO: Async Handler? - https://zellwk.com/blog/async-await-express/ 
-
 router.post('/upload-file', upload.single('file'), imbController.uploadFile, imbController.exportTrackingFileToDB);
 
 router.get('/checkFtp', asyncHandler(async(req, res) => {
     const fileList = await scanController.getFilesFromFTP();
-    await res.status(200).send({
+    res.status(200).send({
         status: true,
         message: fileList,
     })
@@ -23,7 +21,10 @@ router.get('/checkFtp', asyncHandler(async(req, res) => {
 
 router.get('/uploadScans', asyncHandler(async(req, res) => {
     const uploadList = await scanController.uploadScanData()
-    res.send('status?', uploadList);
+    res.status(200).send({
+        status: true,
+        message: uploadList
+    });
 }));
 
 module.exports = router;

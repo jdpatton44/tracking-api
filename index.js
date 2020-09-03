@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const morgan = require('morgan');
 var log4js = require('log4js');
 const fs = require('fs');
 var path = require('path');
@@ -13,26 +12,40 @@ const app = express();
 // enable CORS
 app.use(cors());
 
-// add other middleware
+// add bodyParser
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// add log4js
 log4js.configure({
-    appenders: { downloads: { type: "file", filename: "downloads.log" } },
-    categories: { default: { appenders: ["downloads"], level: "info" } }
+    appenders: { downloads: { type: "file", filename: "log\\downloads.log" } },
+    categories: { default: { appenders: ["downloads"], level: "debug" } }
+  });
+const logger = log4js.getLogger("downloads");
+
+/// error handlers
+// development error handler
+// will print stacktrace
+if (app.get('env') === 'development') {
+    app.use(function(err, req, res, next) {
+        log.error("Something went wrong:", err);
+        res.status(err.status || 500);
+        res.render('error', {
+            message: err.message,
+            error: err
+        });
+    });
+}
+// production error handler
+// no stacktraces leaked to user
+app.use(function(err, req, res, next) {
+    log.error("Something went wrong:", err);
+    res.status(err.status || 500);
+    res.render('error', {
+        message: err.message,
+        error: {}
+    });
 });
-const theAppLog = log4js.getLogger('downloads');
-
-// use morgan for logging
-// log only 4xx and 5xx responses to console
-app.use(morgan('dev', {
-    skip: function (req, res) { return res.statusCode < 400 }
-}))
-
-// log all requests to access.log
-app.use(morgan('common', {
-    stream: fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
-  }))
 
 // import routes
 const routes = require('./routes/index');
