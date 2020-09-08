@@ -75,7 +75,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
             // copy the original array of data for insertion
             const sqlData = [...csvData];
             csvData = [];
-            await db.Imb.bulkCreate(sqlData)
+            await db.imb.bulkCreate(sqlData)
             console.log(`successfully  inserted ${MAXINPUT} rows into the database.`);
             csvData.length = [];
           }
@@ -83,7 +83,7 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
         // close the file
         await once(rl, 'close');
         // insert the leftover data
-        await db.Imb.bulkCreate(csvData)
+        await db.imb.bulkCreate(csvData)
         console.log('successfully inserted the last bit of data.');
         csvData = [];
         console.log('File processed.');
@@ -95,7 +95,6 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
   } catch (error) {
   console.error(error);
   }
-  // next();
 };
 
 exports.deleteUpload = async (req, res) => {
