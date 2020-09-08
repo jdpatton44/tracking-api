@@ -12,7 +12,7 @@ state	               varchar(3)
 package	               varchar(15)
 */
 module.exports = (sequelize, DataTypes) => {
-  const Imb = sequelize.define('imb', {
+  const imb = sequelize.define('imb', {
     jobid: {
       type: DataTypes.INTEGER,
     },
@@ -30,5 +30,5 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
 
-  return Imb;
+  return imb;
 };

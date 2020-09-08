@@ -20,10 +20,18 @@ router.get('/checkFtp', asyncHandler(async(req, res) => {
 }));
 
 router.get('/uploadScans', asyncHandler(async(req, res) => {
-    const uploadList = await scanController.uploadScanData()
+    const uploadList = await scanController.uploadScanData();
     res.status(200).send({
         status: true,
         message: uploadList
+    });
+}));
+
+router.get('/matches', asyncHandler(async(req, res) => {
+    const matches = await scanController.joinScansAndImbs();
+    res.status(200).send({
+        status: true,
+        message: matches,
     });
 }));
 

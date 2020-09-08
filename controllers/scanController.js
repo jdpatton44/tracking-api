@@ -7,6 +7,8 @@ const ftp = require('basic-ftp');
 // const { processScans } = require('../utils/fileProcessors');
 var csv = require('fast-csv');
 const { includes } = require('lodash');
+const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
+const { scan } = require('../models/index');
 const log = require('log4js').getLogger("downloads");
 
 const MAXINPUT = 5000;
@@ -32,42 +34,45 @@ exports.getFilesFromFTP = async (req, res, next) => {
         const fileNames = await files.map(f => f.name)
         log.debug(`retrieving files: ${fileNames} from FTP`);
         await client.downloadToDir('uploads/scanData','/IMBData/');
-        await files.forEach( async file => { 
+        const filePromises =  files.map( async file => { 
           fileList.push(file.name)
-          await client.rename('/IMBData/' + file.name, '/downloaded/' + file.name) 
+          const downloadedFile = await client.rename('/IMBData/' + file.name, '/downloaded/' + file.name) 
           console.log('File List: ', fileList)
-        });  
+          return downloadedFile;
+        });
+        const downloadedFiles = await Promise.all(filePromises);
+        console.log(downloadedFiles)
+        
     }
       catch(error) {
         console.log(error);
       }
     }
     await downloadFiles(client);
-    // client.close();
-    
+    client.close();
     return fileList;
  }
 
 exports.uploadScanData = async (req, res, next) => {
   console.log('starting uploadScans.....');
   // set the download directory
-  const scansFolder = path.join(__dirname, '../' + '/uploads/scanData/');
-  console.log(scansFolder);
+  const scansFolder = path.join(__dirname, '../' + '/scanData/');
   // check for files in directory.
-  let UploadsList = []
   let totalfileRecords = 0;
   let fileRecords = [];
-  const files = fs.readdir(scansFolder, async (err, files) => {
-    console.table(files);
-    const uploadedFiles = await Promise.all(files.map(async (file, i) => {
-      fileRecords[file] = 0;
-      try {
-        const rl = readline.createInterface({
-          input: fs.createReadStream(scansFolder + file),
-          crlfDelay: Infinity
+  let returnArr = [];
+  await fs.readdir(scansFolder, async (error, files) => {
+    if (error) {
+      console.log(error) 
+    } else {
+      for (let i = 0; i < files.length; i++) {
+        fileRecords[files[i]] = 0;
+        try {
+          const rl = readline.createInterface({
+            input: fs.createReadStream(scansFolder + files[i]),
+            crlfDelay: Infinity 
         });
         const filename = files[i];
-
         let = txtData = [];
         rl.on('line', async (line) => {
           // read a line of the data and split it into an array to create an object to insert into the db
@@ -83,28 +88,41 @@ exports.uploadScanData = async (req, res, next) => {
           };
           // add the object to the array to be inserted
           txtData.push(newScan);
-          fileRecords[file]++;
+          fileRecords[files[i]]++;
           if (txtData.length > MAXINPUT) {
             // copy the original array of data for insertion
             const sqlData = [...txtData];
             txtData = [];
+            console.log('inserted ' + sqlData.length + ' records.');
             await db.scan.bulkCreate(sqlData);
           }
         });
+  
         await once(rl, 'close');
-        
         // insert the leftover data
+        console.log('inserted ' + txtData.length + ' records.')
+        returnArr[i] = (fileRecords[files[i]] + ' records from ' + filename + ' processed.')
         await db.scan.bulkCreate(txtData);
-        console.log(fileRecords[file], ' records from ', filename, ' processed.');
-        log.debug(fileRecords[file], ' records from ', filename, ' processed to database.');
-        return filename;
+        txtData = []
+        console.log(returnArr[i]);
+        log.debug(returnArr[i]);
       }
       catch (error) {
         console.log(error);
-      }
-      fs.unlink(file)
-    }));
+      } 
+    };    
+    }
   });
-    return UploadsList;
-};
+  console.log('upload complete.')
+  return returnArr; 
+  };
 
+  exports.joinScansAndImbs = async (req, res, next) => {
+     const matches = await db.imb.findAll({
+      include: [{
+        model: scan,
+        required: true,
+      }]
+    });
+    return matches;
+  }
