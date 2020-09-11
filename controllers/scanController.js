@@ -33,16 +33,15 @@ exports.getFilesFromFTP = async (req, res, next) => {
         const files = await client.list('/IMBData/'); 
         const fileNames = await files.map(f => f.name)
         log.debug(`retrieving files: ${fileNames} from FTP`);
-        await client.downloadToDir('uploads/scanData','/IMBData/');
-        const filePromises =  files.map( async file => { 
-          fileList.push(file.name)
-          const downloadedFile = await client.rename('/IMBData/' + file.name, '/downloaded/' + file.name) 
-          console.log('File List: ', fileList)
-          return downloadedFile;
-        });
+        await client.downloadToDir('scanData','/IMBData/');
         const downloadedFiles = await Promise.all(filePromises);
+        for (let i = 0; i < files.length; i++) {
+          fileList.push(file[i].name)
+          await client.rename('/IMBData/' + file[i].name, '/downloaded/' + file[i].name) 
+          console.log('File List: ', fileList)
+         }
         console.log(downloadedFiles)
-        
+        return fileList;
     }
       catch(error) {
         console.log(error);
@@ -100,12 +99,14 @@ exports.uploadScanData = async (req, res, next) => {
   
         await once(rl, 'close');
         // insert the leftover data
+        await db.scan.bulkCreate(txtData);
         console.log('inserted ' + txtData.length + ' records.')
         returnArr[i] = (fileRecords[files[i]] + ' records from ' + filename + ' processed.')
-        await db.scan.bulkCreate(txtData);
         txtData = []
         console.log(returnArr[i]);
         log.debug(returnArr[i]);
+        // delete file
+        await fs.unlink(file)
       }
       catch (error) {
         console.log(error);
@@ -113,7 +114,6 @@ exports.uploadScanData = async (req, res, next) => {
     };    
     }
   });
-  console.log('upload complete.')
   return returnArr; 
   };
 
