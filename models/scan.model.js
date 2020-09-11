@@ -5,16 +5,16 @@ SQL table structure
 Field	                Type
 ==========================================
 Id                    *PRIMARY KEY
-Imb	                   varchar(31) 
+IMB	                   varchar(31) 
 scanDateTime	       DATE
 scanZip	               varchar(11)
-phase	               varchar(15)
+mailPhase	               varchar(15)
 expectedDel	           DATE
 anticipatedDel	       DATE
 */
 module.exports = (sequelize, DataTypes) => {
     const scan = sequelize.define('scans', {
-      Imb: {
+      IMB: {
         type: DataTypes.STRING,
       },
       scanDateTime: {
@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       scanZip: {
         type: DataTypes.STRING,
       },
-      phase: {
+      mailPhase: {
         type: DataTypes.STRING,
       },
       expectedDel: {
