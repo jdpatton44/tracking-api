@@ -21,10 +21,15 @@ exports.getFilesFromFTP = async (req, res, next) => {
       secure: true, 
     }
     
-    let fileList = [];
     const client = new ftp.Client();
     client.ftp.verbose = true;
     // await client.useTLS();
+    client.trackProgress(info => {
+      console.log("File", info.name)
+      console.log("Type", info.type)
+      console.log("Transferred", info.bytes)
+      console.log("Transferred Overall", info.bytesOverall)
+  })
     async function downloadFiles (client) {
       try {
         await client.connect(connectionOptions.host);
@@ -33,21 +38,19 @@ exports.getFilesFromFTP = async (req, res, next) => {
         const files = await client.list('/IMBData/'); 
         const fileNames = await files.map(f => f.name)
         log.debug(`retrieving files: ${fileNames} from FTP`);
+        client.trackProgress(info => console.log(info.name, ": ", info.bytesOverall))
         await client.downloadToDir('scanData','/IMBData/');
-        const downloadedFiles = await Promise.all(filePromises);
         for (let i = 0; i < files.length; i++) {
-          fileList.push(file[i].name)
-          await client.rename('/IMBData/' + file[i].name, '/downloaded/' + file[i].name) 
-          console.log('File List: ', fileList)
-         }
-        console.log(downloadedFiles)
-        return fileList;
+          await client.rename('/IMBData/' + files[i].name, '/downloaded/' + files[i].name) 
+        }
+        client.trackProgress();
+        return fileNames;
     }
       catch(error) {
         console.log(error);
       }
     }
-    await downloadFiles(client);
+    const fileList = await downloadFiles(client);
     client.close();
     return fileList;
  }
@@ -76,18 +79,21 @@ exports.uploadScanData = async (req, res, next) => {
         rl.on('line', async (line) => {
           // read a line of the data and split it into an array to create an object to insert into the db
           const row = line.split(',');
+          const mailPhase = row[5] ? row[5].substr(6,2) : '';
           const newScan = {
             // use substring to get rid of quotes around the data
-            Imb: row[0],
+            IMB: row[0],
             scanDateTime: row[2],
             scanZip: row[4],
-            phase: row[5],
+            mailPhase,
             expectedDel: row[6],
             anticipatedDel: row[7],
           };
-          // add the object to the array to be inserted
-          txtData.push(newScan);
-          fileRecords[files[i]]++;
+          // add the object to the array to be inserted if it is a valid IMB
+          if(newScan.IMB.length > 30) {
+            txtData.push(newScan);
+            fileRecords[files[i]]++;
+          }
           if (txtData.length > MAXINPUT) {
             // copy the original array of data for insertion
             const sqlData = [...txtData];
@@ -105,13 +111,18 @@ exports.uploadScanData = async (req, res, next) => {
         txtData = []
         console.log(returnArr[i]);
         log.debug(returnArr[i]);
-        // delete file
-        await fs.unlink(file)
       }
       catch (error) {
         console.log(error);
       } 
     };    
+    }
+    for (let i = 0; i < files.length; i++) {
+       await fs.unlink(scansFolder + files[i], function (err) {
+        if (err) throw err;
+        // if no error, file has been deleted successfully
+        console.log(files[i] + ' deleted!');
+    });  
     }
   });
   return returnArr; 
