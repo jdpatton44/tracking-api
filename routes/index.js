@@ -27,6 +27,8 @@ router.get('/uploadScans', asyncHandler(async(req, res) => {
     });
 }));
 
+router.get('/scansbyDate', scanController.getJobScansByDate);
+
 router.get('/matches', asyncHandler(async(req, res) => {
     const matches = await scanController.joinScansAndImbs();
     res.status(200).send({

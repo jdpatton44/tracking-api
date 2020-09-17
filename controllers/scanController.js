@@ -10,6 +10,7 @@ const { includes } = require('lodash');
 const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 const { scan } = require('../models/index');
 const log = require('log4js').getLogger("downloads");
+const sequelize = require('sequelize');
 
 const MAXINPUT = 5000;
 
@@ -38,7 +39,7 @@ exports.getFilesFromFTP = async (req, res, next) => {
         const files = await client.list('/IMBData/'); 
         const fileNames = await files.map(f => f.name)
         log.debug(`retrieving files: ${fileNames} from FTP`);
-        client.trackProgress(info => console.log(info.name, ": ", info.bytesOverall))
+        client.trackProgress(info => console.log(info.name, ": ", info.bytes))
         await client.downloadToDir('scanData','/IMBData/');
         for (let i = 0; i < files.length; i++) {
           await client.rename('/IMBData/' + files[i].name, '/downloaded/' + files[i].name) 
@@ -128,12 +129,11 @@ exports.uploadScanData = async (req, res, next) => {
   return returnArr; 
   };
 
-  exports.joinScansAndImbs = async (req, res, next) => {
-     const matches = await db.imb.findAll({
-      include: [{
-        model: scan,
-        required: true,
-      }]
-    });
-    return matches;
+  exports.getJobScansByDate = async (req, res, next) => {
+    req.jobId = 6;
+    const scansByDate = await db.sequelize.query(
+      'CALL SP_getJobScansByDate( :jobId)', 
+      {replacements: {jobId: 6}, type: sequelize.QueryTypes.SELECT}
+    );
+    res.json(scansByDate);
   }
