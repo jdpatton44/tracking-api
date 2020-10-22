@@ -1,13 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('../models/index');
-const readline = require('readline');
-const { once } = require('events');
-const { includes } = require('lodash');
-//const { processScans } = require('../utils/fileProcessors');
 const log = require('log4js').getLogger("downloads");
+const es = require('event-stream');
 
-const MAXINPUT = 5000;
+const MAXINPUT = 20000;
 
 exports.uploadFile = async (req, res, next) => {
   console.log(req.body.jobId);
@@ -43,57 +40,54 @@ exports.exportTrackingFileToDB = async (req, res, next) => {
   // get the file's location
   const filePath = path.join(__dirname, '../', req.file.path);
   console.log('attempting upload to db.');
-  
+
+  let numLines = 0;
+  let csvData = [];
+  let insertedCount = 0;
+
   try {
-    if (req.file == undefined) {
-      return res.status(400).send('No file found.');
-    }
-    (async function processLineByLine() {
-      try {
-        const rl = readline.createInterface({
-          input: fs.createReadStream(filePath),
-          crlfDelay: Infinity
-        });
-        let numLines = 0;
-        let csvData = [];
-        rl.on('line', async (line) => {
-          // read a line of the data and split it into an array to create an object to insert into the db
-          const row = line.split(',');
-          if(row[0].includes('barcode')) return; 
-          const newImb = {
-            jobid: req.body.jobId,
-            // use substring to get rid of quotes around the data
-            IMB: row[0].substring(1,row[0].length-1),
-            zipPlusFour: row[1].substring(1,row[1].length-1),
-            state: row[2].substring(1,row[2].length-1),
-            package: row[3].substring(1,row[3].length-1),
+    const dataStream = fs.createReadStream(filePath)
+    .pipe(es.split())
+    .pipe(es.mapSync( async function(line) {
+        numLines++;
+        const row = line.split(',');
+        if(row[0].includes('barcode')) return; 
+        if(!row[0]) return;
+        const newImb = {
+          jobid: req.body.jobId,
+          // use substring to get rid of quotes around the data
+          IMB: row[0].substring(1,row[0].length-1),
+          zipPlusFour: row[1].substring(1,row[1].length-1),
+          state: row[2].substring(1,row[2].length-1),
+          package: row[3].substring(1,row[3].length-1),
           };
-          // add the object to the array to be inserted
-          csvData.push(newImb);
-          numLines ++;
-          if (csvData.length > MAXINPUT) {
+        // add the object to the array to be inserted
+        csvData.push(newImb);
+        if (csvData.length > MAXINPUT) {
             // copy the original array of data for insertion
             const sqlData = [...csvData];
+            insertedCount += csvData.length;
             csvData = [];
             await db.imb.bulkCreate(sqlData)
-            console.log(`successfully  inserted ${MAXINPUT} rows into the database.`);
-            csvData.length = [];
+            console.log(`successfully  inserted ${MAXINPUT} rows into the database, ${insertedCount} total so far.`);
           }
-        });
-        // close the file
-        await once(rl, 'close');
-        // insert the leftover data
-        await db.imb.bulkCreate(csvData)
-        console.log('successfully inserted the last bit of data.');
-        csvData = [];
-        console.log('File processed.');
-        log.debug(`Uploaded ${numLines} records from ${req.file.originalname} into database`)
-      } catch (error) {
-        console.error(error);
-      }
-    })();
-  } catch (error) {
-  console.error(error);
+        })).on('error', function(error) {
+            console.log('Error reading file.')
+        }). on('end', async function() {
+            if (csvData.length > 0)  {
+                // insert the leftover data
+                let lastBit = [...csvData];
+                insertedCount += csvData.length;
+                await db.imb.bulkCreate(lastBit)
+                console.log(`successfully inserted the last ${csvData.length} lines of data, ${insertedCount} total lines.`);
+                csvData = [];
+            }
+            console.log('File processed.');
+            log.debug(`Uploaded ${numLines} records from ${req.file.originalname} into database`)
+
+        })
+  } catch(error) {
+    console.log(error)
   }
 };
 
